@@ -33,7 +33,7 @@
       "dst-cfs": "apps",
       "dst-cosmos": "config/targets"
    },
-
+   awaka123
    "template-var": ["@TEMPLATE@","@Template@","@template@"]
    
 }

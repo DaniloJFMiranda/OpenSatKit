@@ -243,6 +243,17 @@ int32 @TEMPLATE@_AppInit(void)
     }
 
     /*
+    ** Subscribe to WakeUp commands
+    ** [REQ-140] [REQ-310]
+    */
+    Status = CFE_SB_Subscribe(@TEMPLATE@_WAKE_UP_MID,@TEMPLATE@_AppData.CmdPipe);
+    if ( Status != CFE_SUCCESS )
+    {
+       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Subscribing to WakeUp Request, RC = 0x%08X\n", Status);
+       return ( Status );
+    }
+
+    /*
     ** Subscribe to Housekeeping request commands
     ** [REQ-140] [REQ-300]
     */
@@ -373,6 +384,13 @@ void @TEMPLATE@_AppPipe(CFE_SB_MsgPtr_t msg)
     switch (MessageID)
     {
         /*
+        ** Wake-up request.
+        */
+        case @TEMPLATE@_WAKE_UP_MID:
+            @TEMPLATE@_PeriodicProcessing(msg);
+            break;
+
+        /*
         ** Housekeeping telemetry request.
         */
         case @TEMPLATE@_SEND_HK_MID:
@@ -427,6 +445,40 @@ void @TEMPLATE@_AppPipe(CFE_SB_MsgPtr_t msg)
     return;
 
 } /* End of @TEMPLATE@_AppPipe() */
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                 */
+/* @TEMPLATE@_PeriodicProcessing() -- On-board command (Wake-Up request)*/
+/*                                                                 */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
+{
+    uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
+
+    /*
+    ** Verify command packet length
+    ** [REQ-280]
+    */
+    if (@TEMPLATE@_VerifyCmdLength(msg, ExpectedLength))
+    {
+        /*
+        ** Perform intended processing (example here only shows an info message being sent)
+        */
+
+                    CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
+                     "Periodic Processing being performed");        
+        
+        /*
+        ** This command does not affect the command execution counter
+        */
+        
+    } /* end if */
+
+    return;
+
+} /* End of @TEMPLATE@_PeriodicProcessing() */
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

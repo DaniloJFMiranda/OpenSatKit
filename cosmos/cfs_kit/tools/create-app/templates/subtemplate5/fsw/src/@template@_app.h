@@ -37,8 +37,9 @@
 #define @TEMPLATE@_CC1_ERR_EID       6
 #define @TEMPLATE@_LEN_ERR_EID       7
 #define @TEMPLATE@_PIPE_ERR_EID      8
+#define @TEMPLATE@_PER_INFO_EID      9
 
-#define @TEMPLATE@_EVT_COUNT         8    /* count of event message ID's */
+#define @TEMPLATE@_EVT_COUNT         9    /* count of event message ID's */
 
 /*
 ** Command packet command codes
@@ -204,7 +205,7 @@ void    @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_NoopCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_ResetCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg);
-void    @TEMPLATE@_TlmReqCmd(CFE_SB_MsgPtr_t msg);
+void    @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg);
 
 boolean @TEMPLATE@_VerifyCmdLength(CFE_SB_MsgPtr_t msg, uint16 ExpectedLength);
 

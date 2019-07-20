@@ -16,8 +16,9 @@
 ** Command Message IDs
 */
 
-#define  @TEMPLATE@_CMD_MID        0x1883
-#define  @TEMPLATE@_SEND_HK_MID    0x1885  /* Same as KIT_CI to simplify integration */
+#define  @TEMPLATE@_CMD_MID           0x1883
+#define  @TEMPLATE@_SEND_HK_MID       0x1885  /* Same as KIT_CI to simplify integration */
+#define  @TEMPLATE@_WAKE_UP_MID       0x18AB /* Same as SC_1Hz */
 
 /*
 ** Telemetry Message IDs

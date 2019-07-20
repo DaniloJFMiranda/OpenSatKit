@@ -467,8 +467,17 @@ void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
         ** Perform intended processing (example here only shows an info message being sent)
         */
 
-                    CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
-                     "Periodic Processing being performed");        
+        CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
+         "Periodic Processing being performed");
+
+        /*
+        ** Manage any pending table loads, validations, etc.
+        ** [REQ-510]
+        */
+        for (i=0; i<@TEMPLATE@_NUM_TABLES; i++)
+        {
+            CFE_TBL_Manage(@TEMPLATE@_AppData.TblHandles[i]);
+        }
         
         /*
         ** This command does not affect the command execution counter
@@ -509,16 +518,7 @@ void @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg)
         ** [REQ-320]
         */
         CFE_SB_TimeStampMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
-        CFE_SB_SendMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
-
-        /*
-        ** Manage any pending table loads, validations, etc.
-        ** [REQ-520]
-        */
-        for (i=0; i<@TEMPLATE@_NUM_TABLES; i++)
-        {
-            CFE_TBL_Manage(@TEMPLATE@_AppData.TblHandles[i]);
-        }
+        CFE_SB_SendMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);        
         
         /*
         ** This command does not affect the command execution counter

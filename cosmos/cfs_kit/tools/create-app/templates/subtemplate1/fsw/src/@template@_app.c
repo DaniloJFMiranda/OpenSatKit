@@ -75,52 +75,13 @@ void @TEMPLATE@_AppMain(void)
         ** [REQ-430]
         */
         CFE_ES_PerfLogExit(@TEMPLATE@_APPMAIN_PERF_ID);
-   
+
         /*
-        ** Pend on the arrival of the next Software Bus message.
-        ** [REQ-210]
+        ** Function that will handle SB incoming messages and time-out
         */
-        Status = CFE_SB_RcvMsg(&@TEMPLATE@_AppData.MsgPtr, @TEMPLATE@_AppData.CmdPipe, CFE_SB_PEND_FOREVER);
-        
-        /*
-        ** Performance Log Entry Stamp.
-        ** [REQ-420]
-        */      
-        CFE_ES_PerfLogEntry(@TEMPLATE@_APPMAIN_PERF_ID);
 
-        /*
-        ** Check the return status from the Software Bus.
-        */        
-        if (Status == CFE_SUCCESS)
-        {
-            /*
-            ** Process Software Bus message. If there are fatal errors
-            ** in command processing the command can alter the global 
-            ** RunStatus variable to exit the main event loop.
-            */
-            @TEMPLATE@_AppPipe(@TEMPLATE@_AppData.MsgPtr);
-            
-            /* 
-            ** Update Critical Data Store. Because this data is only updated
-            ** in one command, this could be moved to the command processing function.
-            ** [REQ-600]
-            */
-            CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
+        Status = @TEMPLATE@_RcvMsg();
 
-        }
-        else
-        {
-            /*
-            ** This is an example of exiting on an error.
-            ** Note that a SB read error is not always going to 
-            ** result in an app quitting. 
-            */
-            CFE_EVS_SendEvent(@TEMPLATE@_PIPE_ERR_EID, CFE_EVS_ERROR,
-                               "@TEMPLATE@: SB Pipe Read Error, @TEMPLATE@ App Will Exit.");
-            
-            @TEMPLATE@_AppData.RunStatus = CFE_ES_APP_ERROR;
-         }
-                    
     } /* end while */
 
     /*
@@ -187,6 +148,7 @@ int32 @TEMPLATE@_AppInit(void)
     ** [REQ-120]
     */
     strcpy(@TEMPLATE@_AppData.PipeName, "@TEMPLATE@_CMD_PIPE");
+    strcpy(@TEMPLATE@_AppData.PipeName2, "@TEMPLATE@_SCH_PIPE");
     @TEMPLATE@_AppData.PipeDepth = @TEMPLATE@_PIPE_DEPTH;
 
     @TEMPLATE@_AppData.LimitHK   = @TEMPLATE@_LIMIT_HK;
@@ -229,7 +191,7 @@ int32 @TEMPLATE@_AppInit(void)
     CFE_SB_InitMsg(&@TEMPLATE@_AppData.HkPacket, @TEMPLATE@_HK_TLM_MID, sizeof(@TEMPLATE@_HkPacket_t), TRUE);
    
     /*
-    ** Create Software Bus message pipe.
+    ** Create Software Bus command message pipe.
     ** [REQ-140]
     */
     Status = CFE_SB_CreatePipe(&@TEMPLATE@_AppData.CmdPipe, @TEMPLATE@_AppData.PipeDepth, @TEMPLATE@_AppData.PipeName);
@@ -238,7 +200,7 @@ int32 @TEMPLATE@_AppInit(void)
        /*
        ** Could use an event at this point
        */
-       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Creating SB Pipe, RC = 0x%08X\n", Status);
+       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Creating SB Cmd Pipe, RC = 0x%08X\n", Status);
        return ( Status );
     }
 
@@ -246,7 +208,17 @@ int32 @TEMPLATE@_AppInit(void)
     ** Subscribe to WakeUp commands
     ** [REQ-140] [REQ-310]
     */
-    Status = CFE_SB_Subscribe(@TEMPLATE@_WAKE_UP_MID,@TEMPLATE@_AppData.CmdPipe);
+    Status = CFE_SB_CreatePipe(&@TEMPLATE@_AppData.SchPipe, @TEMPLATE@_AppData.PipeDepth, @TEMPLATE@_AppData.PipeName2);
+    if ( Status != CFE_SUCCESS )
+    {
+       /*
+       ** Could use an event at this point
+       */
+       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Creating SB Sch Pipe, RC = 0x%08X\n", Status);
+       return ( Status );
+    }
+
+    Status = CFE_SB_Subscribe(@TEMPLATE@_WAKE_UP_MID,@TEMPLATE@_AppData.SchPipe);
     if ( Status != CFE_SUCCESS )
     {
        CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Subscribing to WakeUp Request, RC = 0x%08X\n", Status);
@@ -371,110 +343,205 @@ int32 @TEMPLATE@_AppInit(void)
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*                                                                 */
-/* @TEMPLATE@_AppPipe() -- Process command pipe message                    */
+/* @TEMPLATE@_CmdPipe() -- Process command pipe message                    */
 /*                                                                 */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-void @TEMPLATE@_AppPipe(CFE_SB_MsgPtr_t msg)
+void @TEMPLATE@_CmdPipe(void)
 {
+    CFE_SB_MsgPtr_t msg = NULL;
     CFE_SB_MsgId_t MessageID;
     uint16 CommandCode;
+    boolean GotNewMsg = TRUE;
 
-    MessageID = CFE_SB_GetMsgId(msg);
-    switch (MessageID)
+    while(GotNewMsg)
     {
-        /*
-        ** Wake-up request.
-        */
-        case @TEMPLATE@_WAKE_UP_MID:
-            @TEMPLATE@_PeriodicProcessing(msg);
-            break;
-
-        /*
-        ** Housekeeping telemetry request.
-        */
-        case @TEMPLATE@_SEND_HK_MID:
-            @TEMPLATE@_HousekeepingCmd(msg);
-            break;
-
-        /*
-        ** @TEMPLATE@ ground commands.
-        ** [REQ-290]
-        */
-        case @TEMPLATE@_CMD_MID:
-
-            CommandCode = CFE_SB_GetCmdCode(msg);
-            switch (CommandCode)
+        if (CFE_SB_RcvMsg(&msg, @TEMPLATE@_AppData.CmdPipe, CFE_SB_POLL) == 
+            CFE_SUCCESS)
+        {
+            MessageID = CFE_SB_GetMsgId(msg);
+            switch (MessageID)
             {
-                case @TEMPLATE@_NOOP_CC:
-                    @TEMPLATE@_NoopCmd(msg);
+                /*
+                ** Housekeeping telemetry request.
+                */
+                case @TEMPLATE@_SEND_HK_MID:
+                    @TEMPLATE@_HousekeepingCmd(msg);
                     break;
 
-                case @TEMPLATE@_RESET_CC:
-                    @TEMPLATE@_ResetCmd(msg);
-                    break;
-                    
-                case @TEMPLATE@_PROCESS_CC:
-                    @TEMPLATE@_RoutineProcessingCmd(msg);
+                /*
+                ** @TEMPLATE@ ground commands.
+                ** [REQ-290]
+                */
+                case @TEMPLATE@_CMD_MID:
+
+                    CommandCode = CFE_SB_GetCmdCode(msg);
+                    switch (CommandCode)
+                    {
+                        case @TEMPLATE@_NOOP_CC:
+                            @TEMPLATE@_NoopCmd(msg);
+                            break;
+
+                        case @TEMPLATE@_RESET_CC:
+                            @TEMPLATE@_ResetCmd(msg);
+                            break;
+                            
+                        case @TEMPLATE@_PROCESS_CC:
+                            @TEMPLATE@_RoutineProcessingCmd(msg);
+                            break;
+
+                        default:
+                            /* [REQ-350] */
+                            CFE_EVS_SendEvent(@TEMPLATE@_CC1_ERR_EID, CFE_EVS_ERROR,
+                             "Invalid ground command code: ID = 0x%X, CC = %d",
+                                              MessageID, CommandCode);
+
+                            /* [REQ-260] */
+                            @TEMPLATE@_AppData.ErrCounter++;
+                            break;
+                    }
                     break;
 
                 default:
+
                     /* [REQ-350] */
-                    CFE_EVS_SendEvent(@TEMPLATE@_CC1_ERR_EID, CFE_EVS_ERROR,
-                     "Invalid ground command code: ID = 0x%X, CC = %d",
-                                      MessageID, CommandCode);
+                    CFE_EVS_SendEvent(@TEMPLATE@_MID_ERR_EID, CFE_EVS_ERROR,
+                                     "Invalid command pipe message ID: 0x%X",
+                                      MessageID);
 
                     /* [REQ-260] */
                     @TEMPLATE@_AppData.ErrCounter++;
                     break;
             }
-            break;
-
-        default:
-
-            /* [REQ-350] */
-            CFE_EVS_SendEvent(@TEMPLATE@_MID_ERR_EID, CFE_EVS_ERROR,
-                             "Invalid command pipe message ID: 0x%X",
-                              MessageID);
-
-            /* [REQ-260] */
-            @TEMPLATE@_AppData.ErrCounter++;
-            break;
+        }
+        else
+        {
+            GotNewMsg = FALSE;
+        }
     }
 
     return;
 
-} /* End of @TEMPLATE@_AppPipe() */
-
+} /* End of @TEMPLATE@_CmdPipe() */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*                                                                 */
-/* @TEMPLATE@_PeriodicProcessing() -- On-board command (Wake-Up request)*/
+/* @TEMPLATE@_RcvMsg()                                             */
+/*                                                                 */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+int32 @TEMPLATE@_RcvMsg(void)
+{
+    int32 Status = CFE_SUCCESS;
+    CFE_SB_MsgId_t MessageID;
+    /*
+    ** Pend on the arrival of the next Software Bus message up to a time-out figure.
+    ** [REQ-220]
+    */
+    Status = CFE_SB_RcvMsg(&@TEMPLATE@_AppData.MsgPtr, @TEMPLATE@_AppData.SchPipe, @TEMPLATE@_WAKEUP_TIMEOUT);
+
+    /*
+    ** Performance Log Entry Stamp.
+    ** [REQ-420]
+    */      
+    CFE_ES_PerfLogEntry(@TEMPLATE@_APPMAIN_PERF_ID);
+
+    /*
+    ** Check the return status from the Software Bus.
+    */        
+    if (Status == CFE_SUCCESS)
+    {
+        MessageID = CFE_SB_GetMsgId(@TEMPLATE@_AppData.MsgPtr);
+        switch (MessageID)
+        {
+            /*
+            ** Wake-Up messages.
+            */
+            case @TEMPLATE@_WAKE_UP_MID:
+                /*
+                ** Verify command packet length
+                ** [REQ-280]
+                */
+                if (@TEMPLATE@_VerifyCmdLength(@TEMPLATE@_AppData.MsgPtr, sizeof(@TEMPLATE@_NoArgsCmd_t)))
+                {
+                    @TEMPLATE@_PeriodicProcessing(@TEMPLATE@_AppData.MsgPtr);
+                    @TEMPLATE@_CmdPipe();                    
+                }
+                break;
+
+            default:
+
+                /* [REQ-350] */
+                CFE_EVS_SendEvent(@TEMPLATE@_MID_ERR_EID, CFE_EVS_ERROR,
+                                 "Invalid command pipe message ID: 0x%X",
+                                  MessageID);
+        }
+    }
+    /*
+    ** Even in time-out case, the application shall proceed with its periodic processing
+    */
+    else if (Status == CFE_SB_TIME_OUT)
+    {        
+        @TEMPLATE@_PeriodicProcessing(@TEMPLATE@_AppData.MsgPtr);
+        @TEMPLATE@_CmdPipe();
+        CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
+
+    }
+    else
+    {
+        /*
+        ** This is an example of exiting on an error.
+        ** Note that a SB read error is not always going to 
+        ** result in an app quitting. 
+        */
+        CFE_EVS_SendEvent(@TEMPLATE@_PIPE_ERR_EID, CFE_EVS_ERROR,
+                           "@TEMPLATE@: SB Pipe Read Error, @TEMPLATE@ App Will Exit.");
+        
+        @TEMPLATE@_AppData.RunStatus = CFE_ES_APP_ERROR;
+     }
+
+     return (Status);
+}
+
+/* End of @TEMPLATE@_RcvMsg() */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                 */
+/* @TEMPLATE@_PeriodicProcessing() -- On-board command (Wake-Up request or Time-Out)*/
 /*                                                                 */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
 {
-    uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
+    uint16 i;
+    
+    /*
+    ** Perform intended processing (example here only shows an info message being sent)
+    */
+
+    CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
+     "Periodic Processing being performed");
 
     /*
-    ** Verify command packet length
-    ** [REQ-280]
+    ** Manage any pending table loads, validations, etc.
+    ** [REQ-510]
+    ** PS: Depending on the complexity of table management, it is worthy to create a new dedicated function
     */
-    if (@TEMPLATE@_VerifyCmdLength(msg, ExpectedLength))
+    for (i=0; i<@TEMPLATE@_NUM_TABLES; i++)
     {
-        /*
-        ** Perform intended processing (example here only shows an info message being sent)
-        */
+        CFE_TBL_Manage(@TEMPLATE@_AppData.TblHandles[i]);
+    }
 
-                    CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
-                     "Periodic Processing being performed");        
-        
-        /*
-        ** This command does not affect the command execution counter
-        */
-        
-    } /* end if */
+    /* 
+    ** Update Critical Data Store. Because this data is only updated
+    ** in one command, this could be moved to the command processing function.
+    ** [REQ-600]
+    */
+    CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);    
+    
+    /*
+    ** This command does not affect the command execution counter
+    */        
 
     return;
 
@@ -490,7 +557,6 @@ void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
 void @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg)
 {
     uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
-    uint16 i;
 
     /*
     ** Verify command packet length
@@ -510,15 +576,6 @@ void @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg)
         */
         CFE_SB_TimeStampMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
         CFE_SB_SendMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
-
-        /*
-        ** Manage any pending table loads, validations, etc.
-        ** [REQ-520]
-        */
-        for (i=0; i<@TEMPLATE@_NUM_TABLES; i++)
-        {
-            CFE_TBL_Manage(@TEMPLATE@_AppData.TblHandles[i]);
-        }
         
         /*
         ** This command does not affect the command execution counter

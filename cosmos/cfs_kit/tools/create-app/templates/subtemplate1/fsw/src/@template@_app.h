@@ -18,6 +18,11 @@
 #include "@template@_tbldefs.h"
 
 /*
+**
+*/
+#define @TEMPLATE@_WAKEUP_TIMEOUT    1000 //milliseconds
+
+/*
 ** Version numbers
 */
 #define @TEMPLATE@_MAJOR_VERSION     1
@@ -162,6 +167,7 @@ typedef struct
   */
   CFE_SB_MsgPtr_t       MsgPtr;
   CFE_SB_PipeId_t       CmdPipe;
+  CFE_SB_PipeId_t       SchPipe;
   
   /*
   ** RunStatus variable used in the main processing loop
@@ -178,6 +184,7 @@ typedef struct
   ** Initialization data (not reported in housekeeping)
   */
   char                  PipeName[16];
+  char                  PipeName2[16];
   uint16                PipeDepth;
 
   uint8                 LimitHK;
@@ -206,6 +213,8 @@ void    @TEMPLATE@_NoopCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_ResetCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg);
 void    @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg);
+int32   @TEMPLATE@_RcvMsg(void);
+void    @TEMPLATE@_CmdPipe(void);
 
 boolean @TEMPLATE@_VerifyCmdLength(CFE_SB_MsgPtr_t msg, uint16 ExpectedLength);
 

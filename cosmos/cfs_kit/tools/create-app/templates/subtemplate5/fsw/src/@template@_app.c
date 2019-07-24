@@ -456,6 +456,7 @@ void @TEMPLATE@_AppPipe(CFE_SB_MsgPtr_t msg)
 void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
 {
     uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
+    uint16 i;
 
     /*
     ** Verify command packet length
@@ -499,7 +500,6 @@ void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
 void @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg)
 {
     uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
-    uint16 i;
 
     /*
     ** Verify command packet length

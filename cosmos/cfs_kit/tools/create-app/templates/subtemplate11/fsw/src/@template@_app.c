@@ -99,13 +99,6 @@ void @TEMPLATE@_AppMain(void)
             ** RunStatus variable to exit the main event loop.
             */
             @TEMPLATE@_AppPipe(@TEMPLATE@_AppData.MsgPtr);
-            
-            /* 
-            ** Update Critical Data Store. Because this data is only updated
-            ** in one command, this could be moved to the command processing function.
-            ** [REQ-600]
-            */
-            CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
 
         }
         else
@@ -150,25 +143,14 @@ int32 @TEMPLATE@_AppInit(void)
     uint32 ResetSubType;
 
     /* 
-    ** Determine Reset Type
+    ** Initialize Variables
     ** [REQ-110]
     */
-    ResetType = CFE_ES_GetResetType(&ResetSubType);
-    
-    /*
-    ** For a Poweron Reset, initialize the Critical variables.
-    ** If it is a Processor Reset, these variables will be restored from
-    ** the Critical Data Store later in this function.
-    ** [REQ-110]
-    */
-    if ( ResetType == CFE_ES_POWERON_RESET )
-    {
-       @TEMPLATE@_AppData.WorkingCriticalData.DataPtOne   = 1;
-       @TEMPLATE@_AppData.WorkingCriticalData.DataPtTwo   = 2;
-       @TEMPLATE@_AppData.WorkingCriticalData.DataPtThree = 3;
-       @TEMPLATE@_AppData.WorkingCriticalData.DataPtFour  = 4;
-       @TEMPLATE@_AppData.WorkingCriticalData.DataPtFive  = 5;
-    }
+    @TEMPLATE@_AppData.WorkingCriticalData.DataPtOne   = 1;
+    @TEMPLATE@_AppData.WorkingCriticalData.DataPtTwo   = 2;
+    @TEMPLATE@_AppData.WorkingCriticalData.DataPtThree = 3;
+    @TEMPLATE@_AppData.WorkingCriticalData.DataPtFour  = 4;
+    @TEMPLATE@_AppData.WorkingCriticalData.DataPtFive  = 5;
     
     /*
     ** Setup the RunStatus variable
@@ -292,56 +274,6 @@ int32 @TEMPLATE@_AppInit(void)
     else
     {
       Status = CFE_TBL_Load(@TEMPLATE@_AppData.TblHandles[1], CFE_TBL_SRC_FILE, @TEMPLATE@_SECOND_TBL_FILE);
-    }
-                 
-
-    /*
-    ** Create and manage the Critical Data Store
-    ** [REQ-160]  
-    */
-    Status = CFE_ES_RegisterCDS(&@TEMPLATE@_AppData.CDSHandle, sizeof(@TEMPLATE@_CdsDataType_t), @TEMPLATE@_CDS_NAME);
-    if(Status == CFE_SUCCESS)
-    {
-       /* 
-       ** Setup Initial contents of Critical Data Store 
-       */
-       CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
-       
-    }
-    else if(Status == CFE_ES_CDS_ALREADY_EXISTS)
-    {
-       /* 
-       ** Critical Data Store already existed, we need to get a copy 
-       ** of its current contents to see if we can use it
-       */
-       Status = CFE_ES_RestoreFromCDS(&@TEMPLATE@_AppData.WorkingCriticalData, @TEMPLATE@_AppData.CDSHandle);
-       if(Status == CFE_SUCCESS)
-       {
-          /*
-          ** Perform any logical verifications, if necessary, to validate data 
-          */
-          CFE_ES_WriteToSysLog("@TEMPLATE@ App CDS data preserved\n");
-       }
-       else
-       {
-          /* 
-          ** Restore Failied, Perform baseline initialization 
-          */
-          @TEMPLATE@_AppData.WorkingCriticalData.DataPtOne   = 1;
-          @TEMPLATE@_AppData.WorkingCriticalData.DataPtTwo   = 2;
-          @TEMPLATE@_AppData.WorkingCriticalData.DataPtThree = 3;
-          @TEMPLATE@_AppData.WorkingCriticalData.DataPtFour  = 4;
-          @TEMPLATE@_AppData.WorkingCriticalData.DataPtFive  = 5;
-          CFE_ES_WriteToSysLog("Failed to Restore CDS. Re-Initialized CDS Data.\n");
-       }
-    }
-    else 
-    {
-       /* 
-       ** Error creating my critical data store 
-       */
-       CFE_ES_WriteToSysLog("@TEMPLATE@: Failed to create CDS (Err=0x%08x)", Status);
-       return(Status);
     }
 
     /*
@@ -580,8 +512,7 @@ void @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg)
         CFE_TBL_ReleaseAddress(@TEMPLATE@_AppData.TblHandles[1]);
         
         /*
-        ** Update Critical variables. These variables will be saved
-        ** in the Critical Data Store and preserved on a processor reset.
+        ** Update Critical variables.
         */
         @TEMPLATE@_AppData.WorkingCriticalData.DataPtOne++;
         @TEMPLATE@_AppData.WorkingCriticalData.DataPtTwo++;

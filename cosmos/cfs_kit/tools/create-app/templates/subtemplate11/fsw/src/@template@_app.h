@@ -69,23 +69,17 @@
 #define @TEMPLATE@_LIMIT_CMD         4    /* Limit of Commands on pipe for Application */
 
 /*
-** @TEMPLATE@ Critical Data Store defines
-*/
-#define @TEMPLATE@_CDS_NAME            "@TEMPLATE@CDS"
-
-
-/*
-** Type definition (Critical Data Store data)
+** Type definition
 */
 typedef struct
 {
-  uint32  DataPtOne;    /* Values stored in my CDS */
+  uint32  DataPtOne;
   uint32  DataPtTwo;
   uint32  DataPtThree;
   uint32  DataPtFour;
   uint32  DataPtFive;
 
-} @TEMPLATE@_CdsDataType_t;
+} @TEMPLATE@_ExampleDataType_t;
 
 
 /*************************************************************************/
@@ -168,10 +162,9 @@ typedef struct
   uint32                RunStatus;
 
   /*
-  ** Critical Data store variables
+  ** Example Data variables
   */
-  @TEMPLATE@_CdsDataType_t      WorkingCriticalData; /* Define a copy of critical data that can be used during Application execution */
-  CFE_ES_CDSHandle_t    CDSHandle;           /* Handle to CDS memory block */
+  @TEMPLATE@_ExampleDataType_t      WorkingCriticalData; /* Define specific data that can be used during Application execution */
 
   /*
   ** Initialization data (not reported in housekeeping)

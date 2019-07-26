@@ -247,36 +247,6 @@ int32 @TEMPLATE@_AppInit(void)
     }
 
     /*
-    ** Register tables with cFE and load default data
-    ** [REQ-150]
-    */
-    Status = CFE_TBL_Register(&@TEMPLATE@_AppData.TblHandles[0], "MyFirstTbl",
-                              sizeof(@TEMPLATE@_Tbl_1_t), CFE_TBL_OPT_DEFAULT,
-                              @TEMPLATE@_FirstTblValidationFunc);
-    if ( Status != CFE_SUCCESS )
-    {
-       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Registering Table 1, RC = 0x%08X\n", Status);
-       return ( Status );
-    }
-    else
-    {
-       Status = CFE_TBL_Load(@TEMPLATE@_AppData.TblHandles[0], CFE_TBL_SRC_FILE, @TEMPLATE@_FIRST_TBL_FILE);
-    }
-    
-    Status = CFE_TBL_Register(&@TEMPLATE@_AppData.TblHandles[1], "MySecondTbl",
-                              sizeof(@TEMPLATE@_Tbl_2_t), CFE_TBL_OPT_DEFAULT,
-                              @TEMPLATE@_SecondTblValidationFunc);
-    if ( Status != CFE_SUCCESS )
-    {
-       CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Registering Table 2, RC = 0x%08X\n", Status);
-       return ( Status );
-    }
-    else
-    {
-      Status = CFE_TBL_Load(@TEMPLATE@_AppData.TblHandles[1], CFE_TBL_SRC_FILE, @TEMPLATE@_SECOND_TBL_FILE);
-    }
-
-    /*
     ** Application startup event message.
     ** [REQ-170]
     */
@@ -390,15 +360,6 @@ void @TEMPLATE@_HousekeepingCmd(CFE_SB_MsgPtr_t msg)
         */
         CFE_SB_TimeStampMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
         CFE_SB_SendMsg((CFE_SB_Msg_t *) &@TEMPLATE@_AppData.HkPacket);
-
-        /*
-        ** Manage any pending table loads, validations, etc.
-        ** [REQ-520]
-        */
-        for (i=0; i<@TEMPLATE@_NUM_TABLES; i++)
-        {
-            CFE_TBL_Manage(@TEMPLATE@_AppData.TblHandles[i]);
-        }
         
         /*
         ** This command does not affect the command execution counter
@@ -484,8 +445,6 @@ void @TEMPLATE@_ResetCmd(CFE_SB_MsgPtr_t msg)
 void @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg)
 {
     uint16 ExpectedLength = sizeof(@TEMPLATE@_NoArgsCmd_t);
-    @TEMPLATE@_Tbl_1_t   *MyFirstTblPtr;
-    @TEMPLATE@_Tbl_2_t   *MySecondTblPtr;
 
     /*
     ** Verify command packet length
@@ -494,23 +453,14 @@ void @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg)
     if (@TEMPLATE@_VerifyCmdLength(msg, ExpectedLength))
     {
         /* In this part, user shall define the command execution
-        ** routines. The following example shows how to edit table
-        ** parameters.  
+        ** routines.  
         */
+        
+        /* Perform routine processing: TODO                             */
+        /*                            .                                 */
+        /*                            .                                 */
+        /*                            .                                 */
 
-        /* Obtain access to table data addresses */
-        CFE_TBL_GetAddress((void *)&MyFirstTblPtr, @TEMPLATE@_AppData.TblHandles[0]);
-        CFE_TBL_GetAddress((void *)&MySecondTblPtr, @TEMPLATE@_AppData.TblHandles[1]);
-        
-        /* Perform routine processing accessing table data via pointers */
-        /*                            TODO                              */
-        /*                            .                                 */
-        /*                            .                                 */
-        
-        /* Once completed with using tables, release addresses          */
-        CFE_TBL_ReleaseAddress(@TEMPLATE@_AppData.TblHandles[0]);
-        CFE_TBL_ReleaseAddress(@TEMPLATE@_AppData.TblHandles[1]);
-        
         /*
         ** Update Critical variables.
         */
@@ -564,53 +514,6 @@ boolean @TEMPLATE@_VerifyCmdLength(CFE_SB_MsgPtr_t msg, uint16 ExpectedLength)
     return(result);
 
 } /* End of @TEMPLATE@_VerifyCmdLength() */
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*                                                                 */
-/* @TEMPLATE@_FirstTblValidationFunc() -- Verify contents of First Table   */
-/*                                buffer contents                  */
-/* [REQ-530]                                                       */
-/*                                                                 */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-int32 @TEMPLATE@_FirstTblValidationFunc(void *TblData)
-{
-    int32              ReturnCode = CFE_SUCCESS;
-    @TEMPLATE@_Tbl_1_t *TblDataPtr = (@TEMPLATE@_Tbl_1_t *)TblData;
-    
-    if (TblDataPtr->TblElement1 > @TEMPLATE@_TBL_ELEMENT_1_MAX)
-    {
-        /* First element is out of range, return an appropriate error code */
-        ReturnCode = @TEMPLATE@_TBL_1_ELEMENT_OUT_OF_RANGE_ERR_CODE;
-    }
-    
-    return ReturnCode;
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*                                                                 */
-/* @TEMPLATE@_SecondTblValidationFunc() -- Verify contents of Second Table */
-/*                                 buffer contents                 */
-/* [REQ-530]                                                       */
-/*                                                                 */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-int32 @TEMPLATE@_SecondTblValidationFunc(void *TblData)
-{
-    int32               ReturnCode = CFE_SUCCESS;
-    @TEMPLATE@_Tbl_2_t *TblDataPtr = (@TEMPLATE@_Tbl_2_t *)TblData;
-    
-    if (TblDataPtr->TblElement3 > @TEMPLATE@_TBL_ELEMENT_3_MAX)
-    {
-        /* Third element is out of range, return an appropriate error code */
-        ReturnCode = @TEMPLATE@_TBL_2_ELEMENT_OUT_OF_RANGE_ERR_CODE;
-    }
-    
-
-    return ReturnCode;
-}
 
 /************************/
 /*  End of File Comment */

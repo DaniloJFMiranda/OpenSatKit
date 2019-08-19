@@ -1,6 +1,6 @@
 {
 
-   "title": "subtemplate7",
+   "title": "subtemplate8",
    "version": "6.5",
    "cosmos": true,
 
@@ -15,10 +15,8 @@
    "cfsapp-": "CMakeLists.txt",
    "cfsapp-fsw/mission_inc":  "@template@_app_perfids.h",
    "cfsapp-fsw/platform_inc": "@template@_app_msgids.h",
-   "cfsapp-fsw/src":          "@template@_app.c,@template@_app.h,@template@_tbldefs.h",
-   "cfsapp-fsw/tables":       "@template@_tbl_1.c,@template@_tbl_2.c",
-   "cosmos-cmd_tlm":          "@template@_cmd.txt,@template@_tlm.txt",
-   "cosmos-table_manager":    "@template@_tbl_1.txt,@template@_tbl_2.txt"
+   "cfsapp-fsw/src":          "@template@_app.c,@template@_app.h",
+   "cosmos-cmd_tlm":          "@template@_cmd.txt,@template@_tlm.txt"
 
 }
 

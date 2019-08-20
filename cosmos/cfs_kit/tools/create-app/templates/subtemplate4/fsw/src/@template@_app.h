@@ -15,7 +15,6 @@
 */
 
 #include "cfe.h"
-#include "@template@_tbldefs.h"
 
 /*
 **
@@ -52,20 +51,6 @@
 #define @TEMPLATE@_NOOP_CC           0    /* no-op command */
 #define @TEMPLATE@_RESET_CC          1    /* reset counters */
 #define @TEMPLATE@_PROCESS_CC        2    /* Perform Routine Processing */
-
-/*
-** Table defines
-*/
-#define @TEMPLATE@_NUM_TABLES        2    /* Number of Tables */
-
-#define @TEMPLATE@_FIRST_TBL_FILE  "/cf/@template@_tbl_1.tbl"
-#define @TEMPLATE@_SECOND_TBL_FILE "/cf/@template@_tbl_2.tbl"
-
-#define @TEMPLATE@_TBL_1_ELEMENT_OUT_OF_RANGE_ERR_CODE    1  
-#define @TEMPLATE@_TBL_2_ELEMENT_OUT_OF_RANGE_ERR_CODE   -1
-
-#define @TEMPLATE@_TBL_ELEMENT_1_MAX  10  
-#define @TEMPLATE@_TBL_ELEMENT_3_MAX  30  
 
 /*
 ** Software Bus defines
@@ -184,7 +169,6 @@ typedef struct
   uint8                 LimitCmd;
 
   CFE_EVS_BinFilter_t   EventFilters[@TEMPLATE@_EVT_COUNT];
-  CFE_TBL_Handle_t      TblHandles[@TEMPLATE@_NUM_TABLES];
 
 } @TEMPLATE@_AppData_t;
 
@@ -210,9 +194,6 @@ int32   @TEMPLATE@_RcvMsg(void);
 void    @TEMPLATE@_CmdPipe(void);
 
 boolean @TEMPLATE@_VerifyCmdLength(CFE_SB_MsgPtr_t msg, uint16 ExpectedLength);
-
-int32   @TEMPLATE@_FirstTblValidationFunc(void *TblData);
-int32   @TEMPLATE@_SecondTblValidationFunc(void *TblData);
 
 
 #endif /* _@template@_app_h_ */

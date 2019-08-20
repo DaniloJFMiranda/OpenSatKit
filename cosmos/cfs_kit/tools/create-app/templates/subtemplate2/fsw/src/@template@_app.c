@@ -235,6 +235,55 @@ int32 @TEMPLATE@_AppInit(void)
        CFE_ES_WriteToSysLog("@TEMPLATE@ App: Error Subscribing to @TEMPLATE@ Command, RC = 0x%08X\n", Status);
        return ( Status );
     }
+
+    /*
+    ** Create and manage the Critical Data Store
+    ** [REQ-160]  
+    */
+    Status = CFE_ES_RegisterCDS(&@TEMPLATE@_AppData.CDSHandle, sizeof(@TEMPLATE@_CdsDataType_t), @TEMPLATE@_CDS_NAME);
+    if(Status == CFE_SUCCESS)
+    {
+       /* 
+       ** Setup Initial contents of Critical Data Store 
+       */
+       CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
+       
+    }
+    else if(Status == CFE_ES_CDS_ALREADY_EXISTS)
+    {
+       /* 
+       ** Critical Data Store already existed, we need to get a copy 
+       ** of its current contents to see if we can use it
+       */
+       Status = CFE_ES_RestoreFromCDS(&@TEMPLATE@_AppData.WorkingCriticalData, @TEMPLATE@_AppData.CDSHandle);
+       if(Status == CFE_SUCCESS)
+       {
+          /*
+          ** Perform any logical verifications, if necessary, to validate data 
+          */
+          CFE_ES_WriteToSysLog("@TEMPLATE@ App CDS data preserved\n");
+       }
+       else
+       {
+          /* 
+          ** Restore Failied, Perform baseline initialization 
+          */
+          @TEMPLATE@_AppData.WorkingCriticalData.DataPtOne   = 1;
+          @TEMPLATE@_AppData.WorkingCriticalData.DataPtTwo   = 2;
+          @TEMPLATE@_AppData.WorkingCriticalData.DataPtThree = 3;
+          @TEMPLATE@_AppData.WorkingCriticalData.DataPtFour  = 4;
+          @TEMPLATE@_AppData.WorkingCriticalData.DataPtFive  = 5;
+          CFE_ES_WriteToSysLog("Failed to Restore CDS. Re-Initialized CDS Data.\n");
+       }
+    }
+    else 
+    {
+       /* 
+       ** Error creating my critical data store 
+       */
+       CFE_ES_WriteToSysLog("@TEMPLATE@: Failed to create CDS (Err=0x%08x)", Status);
+       return(Status);
+    }
     
     /*
     ** Application startup event message.
@@ -393,6 +442,7 @@ int32 @TEMPLATE@_RcvMsg(void)
     {        
         @TEMPLATE@_PeriodicProcessing(@TEMPLATE@_AppData.MsgPtr);
         @TEMPLATE@_CmdPipe();
+        CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
 
     }
     else
@@ -421,15 +471,14 @@ int32 @TEMPLATE@_RcvMsg(void)
 
 void @TEMPLATE@_PeriodicProcessing(CFE_SB_MsgPtr_t msg)
 {
-    uint16 i;
-    
+        
     /*
     ** Perform intended processing (example here only shows an info message being sent)
     */
 
     CFE_EVS_SendEvent(@TEMPLATE@_PER_INFO_EID, CFE_EVS_INFORMATION,
      "Periodic Processing being performed");
-    
+
     /*
     ** This command does not affect the command execution counter
     */        
@@ -576,6 +625,12 @@ void @TEMPLATE@_RoutineProcessingCmd(CFE_SB_MsgPtr_t msg)
         @TEMPLATE@_AppData.WorkingCriticalData.DataPtThree++;
         @TEMPLATE@_AppData.WorkingCriticalData.DataPtFour++;
         @TEMPLATE@_AppData.WorkingCriticalData.DataPtFive++;
+
+        /* 
+        ** Update Critical Data Store.
+        ** [REQ-600]
+        */
+        CFE_ES_CopyToCDS(@TEMPLATE@_AppData.CDSHandle, &@TEMPLATE@_AppData.WorkingCriticalData);
 
         /* [REQ-250] */
         @TEMPLATE@_AppData.CmdCounter++;

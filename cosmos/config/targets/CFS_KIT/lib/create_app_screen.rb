@@ -49,42 +49,128 @@ def create_app_display_template_info(screen)
 
 end # create_app_display_template_info()
 
+def continue_button(screen, cfs_target_dir, cosmos_target_dir)
+   app_name_widget = screen.get_named_widget("app_name_widget")
+   sub_template = "Dan Templates Wrapper"
+   app_name = app_name_widget.text #TODO: truncate in max 9 characters
+   periodicity = screen.get_named_widget("periodicity")
+   has_table = screen.get_named_widget("has_table")
+   has_cds = screen.get_named_widget("has_cds")
+   
+   if periodicity.text == "Time-Out Periodic" and has_table.text == "Yes" and has_cds.text == "Yes"
+      #Type 1: Time-Out Periodic with CDS storage with tables
+      sub_template = "subtemplate1"
+   elsif periodicity.text == "Time-Out Periodic" and has_table.text == "No" and has_cds.text == "Yes"
+      #Type 2: Time-Out Periodic with CDS storage without tables
+      sub_template = "subtemplate2"
+   elsif periodicity.text == "Time-Out Periodic" and has_table.text == "Yes" and has_cds.text == "No"
+      #Type 3: Time-Out Periodic without CDS storage with tables
+      sub_template = "subtemplate3"
+   elsif periodicity.text == "Time-Out Periodic" and has_table.text == "No" and has_cds.text == "No"
+      #Type 4: Time-Out Periodic without CDS storage without tables
+      sub_template = "subtemplate4"
+   elsif periodicity.text == "Soft Periodic" and has_table.text == "Yes" and has_cds.text == "Yes"
+      #Type 5: Soft-Critical Periodic with CDS storage with tables
+      sub_template = "subtemplate5"
+   elsif periodicity.text == "Soft Periodic" and has_table.text == "No" and has_cds.text == "Yes"
+      #Type 6: Soft-Critical Periodic with CDS storage without tables
+      sub_template = "subtemplate6"
+   elsif periodicity.text == "Soft Periodic" and has_table.text == "Yes" and has_cds.text == "No"
+      #Type 7: Soft-Critical Periodic without CDS storage with tables
+      sub_template = "subtemplate7"
+   elsif periodicity.text == "Soft Periodic" and has_table.text == "No" and has_cds.text == "No"
+      #Type 8: Soft-Critical Periodic without CDS storage without tables
+      sub_template = "subtemplate8"
+   elsif periodicity.text == "Asynchronous" and has_table.text == "Yes" and has_cds.text == "Yes"
+      #Type 9: Asynchronous with CDS storage with tables
+      sub_template = "subtemplate9"
+   elsif periodicity.text == "Asynchronous" and has_table.text == "No" and has_cds.text == "Yes"
+      #Type 10: Asynchronous with CDS storage without tables
+      sub_template = "subtemplate10"
+   elsif periodicity.text == "Asynchronous" and has_table.text == "Yes" and has_cds.text == "No"
+      #Type 11: Asynchronous without CDS storage with tables
+      sub_template = "subtemplate11"
+   elsif periodicity.text == "Asynchronous" and has_table.text == "No" and has_cds.text == "No"
+      #Type 12: Asynchronous without CDS storage without tables
+      sub_template = "subtemplate12"
+   end
+
+   params = {"app_name": app_name,
+            "periodicity": periodicity,
+            "cfs_target_dir": cfs_target_dir,
+            "sub_template": sub_template,
+            "cosmos_target_dir": cosmos_target_dir}
+
+   create_app_execute2(params)
+end
+
+def create_app_execute(screen)
+
+   @template_sel = screen.get_named_widget("template")
+   @cfs_target_dir    = screen.get_named_widget("cfs_target_dir")
+   @cosmos_target_dir = screen.get_named_widget("cosmos_target_dir")
+   
+   if @template_sel.text == "Dan Templates Wrapper"
+
+      screen_def = '
+         SCREEN AUTO AUTO 0.5 FIXED
+         VERTICAL
+            MATRIXBYCOLUMNS 2
+              LABEL "Enter app name"
+              NAMED_WIDGET app_name_widget TEXTFIELD 256 "example_app"
+            END            
+            MATRIXBYCOLUMNS 2
+               LABEL "Periodicity"
+               NAMED_WIDGET periodicity COMBOBOX "Time-Out Periodic" "Soft Periodic" "Asynchronous"
+            END
+            MATRIXBYCOLUMNS 2
+               LABEL "cFS Tables needed?"
+               NAMED_WIDGET has_table COMBOBOX "Yes" "No"
+            END
+            MATRIXBYCOLUMNS 2
+               LABEL "cFS Critical Data Storage?"
+               NAMED_WIDGET has_cds COMBOBOX "Yes" "No"
+            END
+            MATRIXBYCOLUMNS 2
+               LABEL "Create App"
+               BUTTON "OK" "continue_button(self, @cfs_target_dir, @cosmos_target_dir)"
+            END
+         END 
+         '
+         screen = local_screen("Dan Templates Wrapper", screen_def, 200, 200)
+   else
+      # COSMOS seems to enforce some input, but verify return just in case
+      @app_name = ask_string("Enter app/lib name")
+      return unless (!@app_name.nil? or @app_name != "")
+      create_app_execute2
+   end   
+end
 
 #
 # Create an application/library based on the user template selection
 #
-def create_app_execute(screen)
- 
-   # COSMOS seems to enforce some input, but verify return just in case
-   app_name = ask_string("Enter app/lib name")
-   return unless (!app_name.nil? or app_name != "")
-
-   template_sel      = screen.get_named_widget("template")
-   cfs_target_dir    = screen.get_named_widget("cfs_target_dir")
-   cosmos_target_dir = screen.get_named_widget("cosmos_target_dir")
-
-   config = read_config_file(JSON_CONFIG_FILE)  
-   dirs = get_default_dirs(config)
+def create_app_execute2(*params)  
    
-   if (cfs_target_dir.text.nil? or cfs_target_dir.text == "")
-      cfs_target_dir.text = dirs['CFS']
-   end
+   config = read_config_file(JSON_CONFIG_FILE)
+   dirs = get_default_dirs(config)   
 
-   if (cosmos_target_dir.text.nil? or cosmos_target_dir.text == "")
-      cosmos_target_dir.text = dirs['COSMOS']
-   end
+   app_name = @app_name.nil? ? params[0][:app_name] : @app_name
+   #template_text = @template_sel.nil? ? "Dan Template" : @template_sel.text
+   template_text = @template_sel.nil? ? params[0][:sub_template] : @template_sel.text
+   cfs_target_dir_text = (@cfs_target_dir.nil? || @cfs_target_dir.text.nil?) ? dirs["CFS"] : (@cfs_target_dir.text.empty? ? dirs["CFS"] : @cfs_target_dir.text)
+   cosmos_target_dir_text = (@cosmos_target_dir.nil? || @cosmos_target_dir.text.nil? || @cosmos_target_dir.text == "") ? dirs["COSMOS"] : (@cosmos_target_dir.text.empty? ? dirs["COSMOS"] : @cosmos_target_dir.text)
 
    begin
 
       app_template = AppTemplate.new(app_name, config[JSON_TEMPLATE_VAR])
       
-      status = app_template.create_app($template_dir[template_sel.text], cfs_target_dir.text, cosmos_target_dir.text)
+      status = app_template.create_app($template_dir[template_text], cfs_target_dir_text, cosmos_target_dir_text)
 
       if status 
           if app_template.include_cosmos
              app_template.update_cosmos_cmd_tlm_server
           end
-          prompt "Sucessfully created #{app_name} in\n   cFS directory #{cfs_target_dir.text}\n   COSMOS directory #{cosmos_target_dir.text}"
+          prompt "Sucessfully created #{app_name} in\n   cFS directory #{cfs_target_dir_text}\n   COSMOS directory #{cosmos_target_dir_text}"
       else
           prompt "Error creating #{app_name}"
       end

@@ -87,7 +87,9 @@ def build_create_app_screen
             if File.exist?(template_file)
                title = AppTemplate.get_title(template_dir)
                if title != ""
-                  template_combo << "'#{title}' "
+                  if !(title.include? "subtemp")
+                    template_combo << "'#{title}' "
+                  end
                   title_to_dir[title] = template_dir
                end
             end

@@ -1,0 +1,19 @@
+{
+
+   "title": "Dan Templates Wrapper",
+   "version": "6.5",
+   "cosmos": true,
+
+   "description": [
+
+      "Provides templates for creating a minimum viable cFS app,",
+      "as per Danilo`s Master Dissertation. The design rules numbering",
+      "and more details about templates utilization can be found in the",
+      "dissertation. The templates include the FSW, cmake, and COSMOS",
+      " cmd_tlm definition files. They do not include the 'classic",
+      "build' make files."
+   ]
+
+}
+
+
